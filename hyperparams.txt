@@ -1,0 +1,7 @@
+hyperparamters:
+
+n-estimators: 500 - number of boosting rounds (trees) to train the model.
+learning-rate : 0.1 - step size at each iteration while moving toward a minimum of a loss function.
+i also tried with 0.01 - gave better results - smaller this value, better the results
+
+alos reg:squarederror - mean squared error (MSE) objective.
