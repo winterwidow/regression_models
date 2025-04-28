@@ -4,31 +4,45 @@ import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
-import os
 
 print("Script has started.")
 
 try:
-    # Print current working directory
-    print(f"Current working directory: {os.getcwd()}")
+    # Load and check the data
+    df = pd.read_csv("NVIDIA_STOCK.csv")
 
-    # Load and preprocess the data
-    df = pd.read_csv('KO_1919-09-06_2025-04-17.csv')  
-    df['date'] = pd.to_datetime(df['date'])
+    print("Columns:", df.columns)
+    print(df.head())
 
-    # Use relevant features and create lag features (i.e., past prices)
-    def create_lag_features(data, lag=3):
+    df.columns = df.columns.str.strip().str.lower()  # lowercase and strip whitespace
+    print("Columns after cleaning:", df.columns.tolist())
+
+    # Convert date column if it exists
+    if 'date' in df.columns:
+        df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
+        df.dropna(subset=['date'], inplace=True)
+
+    else:
+        print("⚠️ No 'date' column found. Skipping datetime conversion.")
+
+    # Rename for consistency if needed
+    if 'adj close' in df.columns:
+        df.rename(columns={'adj close': 'adj_close'}, inplace=True)
+
+    # Create lag features
+    def create_lag_features(data, lag=12):
         for i in range(1, lag + 1):
             data[f'lag_{i}'] = data['adj_close'].shift(i)
         return data
 
     df = create_lag_features(df)
 
-    # Drop rows with NaN (from the shift)
+    # Drop rows with NaNs from lag
     df.dropna(inplace=True)
+    print(f"Rows after cleaning: {len(df)}")
 
     # Features and target
-    features = ['lag_1', 'lag_2', 'lag_3', 'volume']
+    features = [f'lag_{i}' for i in range(1, 4)] + ['volume']
     target = 'adj_close'
 
     X = df[features]
@@ -41,8 +55,11 @@ try:
     model = xgb.XGBRegressor(n_estimators=100, learning_rate=0.01, objective='reg:squarederror')
     model.fit(X_train, y_train)
 
-    # Predictions
+    # Predict
     y_pred = model.predict(X_test)
+
+    # Check if predictions are made
+    print(f"Predictions: {y_pred[:5]}")  # Display first few predictions
 
     # Evaluation
     mse = mean_squared_error(y_test, y_pred)
@@ -53,24 +70,20 @@ try:
     plt.figure(figsize=(10, 5))
     plt.plot(y_test.values, label='Actual Price')
     plt.plot(y_pred, label='Predicted Price', linestyle='--')
-    plt.title('XGBoost Prediction of Coca-Cola Stock')
+    plt.title('XGBoost Prediction of NVIDIA Stock')
     plt.xlabel('Samples')
     plt.ylabel('Adjusted Close Price')
     plt.legend()
     plt.tight_layout()
     plt.show()
 
-    # Create a DataFrame with actual vs predicted prices
+    # Save to CSV
     results = pd.DataFrame({
-        'Actual Price': y_test,
+        'Actual Price': y_test.values,
         'Predicted Price': y_pred
     })
-
-    # Save to CSV
-    results.to_csv('predicted_vs_actual_prices.csv', index=False)
-
-    # Optional: Print a message confirming the file has been saved
-    print("The predicted vs actual prices have been saved to 'predicted_vs_actual_prices.csv'.")
+    results.to_csv("predicted_vs_actual_nvidia.csv", index=False)
+    print("Results saved to 'predicted_vs_actual_nvidia.csv'")
 
 except Exception as e:
     print(f"An error occurred: {e}")

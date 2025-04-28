@@ -9,7 +9,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
 
 # Load data
-df = pd.read_csv("coco_cola.csv")  
+df = pd.read_csv("KO_1919-09-06_2025-04-17.csv")  
 print(df.columns)
 
 df["date"] = pd.to_datetime(df["date"])
